@@ -17,11 +17,6 @@ type Error interface {
 	DLSendable() bool
 }
 
-// DLBehavior allows devs to customize sending messages to DL.
-type DLBehavior interface {
-	DLErrorMessage() string
-}
-
 // Log accepts an error and will call its Log method, if it implements Logger.
 // Otherwise will log the return of its Error method.
 func Log(ctx context.Context, err error, logger log.Logger) {

@@ -3,6 +3,7 @@ package subscriber
 import (
 	"context"
 
+	"github.com/lucasanjosmoraes/chicago-ports/pkg/log"
 	"github.com/lucasanjosmoraes/chicago-ports/pkg/stoppage"
 )
 
@@ -27,7 +28,7 @@ type Message interface {
 }
 
 // Ack is where the adapters will handle its ack routines.
-type Ack func(ctx context.Context) error
+type Ack func(ctx context.Context, logger log.Logger, actions Actions) error
 
 // Reject is where the adapters will handle its no-ack/reject/retry routines.
-type Reject func(ctx context.Context, err error)
+type Reject func(ctx context.Context, logger log.Logger, err error, actions Actions)
