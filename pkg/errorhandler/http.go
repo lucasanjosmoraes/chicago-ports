@@ -9,43 +9,41 @@ import (
 
 // HTTPHandler defines what's needed to handle errors returned from a http.Response
 type HTTPHandler interface {
-	Handle(context.Context, http.Response, error)
+	Handle(ctx context.Context, logger log.Logger, res http.Response, err error)
 }
 
 // ResponseWithLog implements HTTPHandler.
-type ResponseWithLog struct {
-	Logger log.Logger
-}
+type ResponseWithLog struct{}
 
 // Handle validates if the given error implements Logger or Responder to call its methods.
-func (h ResponseWithLog) Handle(ctx context.Context, res http.Response, err error) {
-	h.log(ctx, err)
+func (h ResponseWithLog) Handle(ctx context.Context, logger log.Logger, res http.Response, err error) {
+	h.log(ctx, logger, err)
 
 	appErr, ok := err.(Responder)
 	if ok && appErr != nil {
 		writeErr := res.Write(appErr.Status(), appErr.Response())
 		if writeErr != nil {
-			h.Logger.Errorf(ctx, "error writing response: %s", writeErr)
+			logger.Errorf(ctx, "error writing response: %s", writeErr)
 		}
 		return
 	}
 
 	writeErr := res.WriteInternalError([]byte(""))
 	if writeErr != nil {
-		h.Logger.Errorf(ctx, "error writing internal error response: %s", writeErr)
+		logger.Errorf(ctx, "error writing internal error response: %s", writeErr)
 	}
 }
 
-func (h ResponseWithLog) log(ctx context.Context, err error) {
+func (h ResponseWithLog) log(ctx context.Context, logger log.Logger, err error) {
 	if err == nil {
 		return
 	}
 
 	logErr, ok := err.(Logger)
 	if ok && logErr != nil {
-		logErr.Log(ctx, h.Logger)
+		logErr.Log(ctx, logger)
 		return
 	}
 
-	h.Logger.Errorf(ctx, err.Error())
+	logger.Errorf(ctx, err.Error())
 }
