@@ -16,4 +16,6 @@ type Logger interface {
 	Panicf(ctx context.Context, format string, args ...interface{})
 	Warn(ctx context.Context, args ...interface{})
 	Warnf(ctx context.Context, format string, args ...interface{})
+	WithField(f string, v interface{}) Logger
+	WithFields(fields map[string]interface{}) Logger
 }

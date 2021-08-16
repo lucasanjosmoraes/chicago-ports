@@ -9,6 +9,7 @@ import (
 // Stream implements Logger and just pass the attributes to the fmt.Fprint function
 // at each level, using the defined io.Writer.
 type Stream struct {
+	Fields map[string]interface{}
 	Writer io.Writer
 }
 
@@ -58,6 +59,22 @@ func (s Stream) Warn(_ context.Context, args ...interface{}) {
 
 func (s Stream) Warnf(_ context.Context, format string, args ...interface{}) {
 	_, _ = fmt.Fprint(s.Writer, formatMessage(format, args...))
+}
+
+func (s Stream) WithField(f string, v interface{}) Logger {
+	logger := s
+	logger.Fields[f] = v
+
+	return logger
+}
+
+func (s Stream) WithFields(fields map[string]interface{}) Logger {
+	logger := s
+	for f, v := range fields {
+		logger.Fields[f] = v
+	}
+
+	return logger
 }
 
 func formatMessage(format string, args ...interface{}) string {
