@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/lucasanjosmoraes/chicago-ports/pkg/log"
@@ -32,26 +31,28 @@ func (s *Shutdown) Add(stopper Stopper) {
 // GracefulSignal accepts a context and it returns a new one that handles signals
 // from the system to shutdown the application.
 func (s Shutdown) GracefulSignal(ctx context.Context) context.Context {
-	ctx, done := context.WithCancel(ctx)
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+	done := make(chan bool, 1)
+	stop := make(chan bool, 1)
 
 	go func() {
-		defer done()
-
-		signalCalled := <-quit
-		s.Logger.Infof(ctx, "Starting shutdown by signal: ", signalCalled.String())
-		signal.Stop(quit)
-		close(quit)
-
-		s.graceful(ctx)
+		for {
+			select {
+			case <-ctx.Done():
+				stop <- true
+			case <-stop:
+				s.graceful(ctx, done)
+				cancel()
+				return
+			}
+		}
 	}()
 
 	return ctx
 }
 
-func (s Shutdown) graceful(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+func (s Shutdown) graceful(ctx context.Context, done chan<- bool) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
 	for _, stopper := range s.stoppers {
@@ -60,4 +61,6 @@ func (s Shutdown) graceful(ctx context.Context) {
 			s.Logger.Error(ctx, err.Error())
 		}
 	}
+
+	done <- true
 }
