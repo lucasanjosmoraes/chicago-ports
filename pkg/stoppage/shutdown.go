@@ -30,7 +30,7 @@ func (s *Shutdown) Add(stopper Stopper) {
 
 // GracefulSignal accepts a context and it returns a new one that handles signals
 // from the system to shutdown the application.
-func (s Shutdown) GracefulSignal(ctx context.Context) context.Context {
+func (s Shutdown) GracefulSignal(ctx context.Context) (context.Context, <-chan bool, chan<- bool) {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
 	done := make(chan bool, 1)
 	stop := make(chan bool, 1)
@@ -48,7 +48,7 @@ func (s Shutdown) GracefulSignal(ctx context.Context) context.Context {
 		}
 	}()
 
-	return ctx
+	return ctx, done, stop
 }
 
 func (s Shutdown) graceful(ctx context.Context, done chan<- bool) {
